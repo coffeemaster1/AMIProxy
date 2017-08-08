@@ -37,9 +37,9 @@ public class AMIProxy {
             reader.setDaemon(true);
             reader.start();
 
-            TCCListener = new TCCConnectionListener(
-                    "10.225.123.236", "isymphony", "1symph0ny2526");
             try {
+                TCCListener = new TCCConnectionListener(
+                        "10.225.123.236", "isymphony", "1symph0ny2526");
                 TCCListener.addProxy(proxy);
                 TCCListener.addWriter(writer);
                 TCCListener.listen();

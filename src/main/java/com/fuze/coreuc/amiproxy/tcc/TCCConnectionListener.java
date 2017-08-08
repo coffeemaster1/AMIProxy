@@ -61,7 +61,7 @@ public class TCCConnectionListener {
             throw e;
         }
 
-        while( true ) {
+        while( listener.isBound() ) {
 
             TCCServerReadThread thread;
             AsteriskToTCCListener tccListener;
@@ -77,6 +77,8 @@ public class TCCConnectionListener {
                 connection.setupConnection();
                 tccListener = new AsteriskToTCCListener(new TCCConnection(connection));
                 proxy.addTCCListener(tccListener);
+                connection.setProxy(proxy);
+                connection.setListener(tccListener);
 
                 thread = new TCCServerReadThread(connection, writer);
 
@@ -86,7 +88,7 @@ public class TCCConnectionListener {
             }
 
             catch( IOException e ) {
-                LOGGER.error("Could not open socket to listen for TCC connections...");
+                LOGGER.error("Could not open socket from connection attempt that was received...");
                 throw e;
             } catch (NoSuchAlgorithmException e) {
                 LOGGER.error("Could not create MD5 algorithm object...");

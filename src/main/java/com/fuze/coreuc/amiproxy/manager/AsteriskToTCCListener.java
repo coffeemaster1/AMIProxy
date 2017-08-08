@@ -12,18 +12,17 @@ public class AsteriskToTCCListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AsteriskToTCCListener.class);
 
-
     private TCCConnection tccOut;
 
     public AsteriskToTCCListener (TCCConnection out) {
         this.tccOut = out;
     }
 
-    public void eventReceived(HashMap<String, String> event) {
+    void eventReceived(HashMap<String, String> event) {
         tccOut.sendAction(event);
     }
 
-    public void eventArrayReceived(ArrayList<String> event) {
+    void eventArrayReceived(ArrayList<String> event) {
         tccOut.sendActionArray(event);
     }
 

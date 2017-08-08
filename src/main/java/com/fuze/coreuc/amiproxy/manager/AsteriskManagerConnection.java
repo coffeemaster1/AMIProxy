@@ -215,7 +215,6 @@ public class AsteriskManagerConnection {
     }
 
     boolean connectionActive() {
-        LOGGER.info("Checking if connection is active: " + isConnected);
         return this.isConnected;
     }
 

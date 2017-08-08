@@ -14,11 +14,10 @@ public class TCCServerReadThread extends Thread {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TCCServerReadThread.class);
 
-    private SynchronousQueue queue;
     private ManagerConnectionWriter amiWriter;
     private TCCConnection serverConnection;
 
-    public TCCServerReadThread(TCCConnection conn, ManagerConnectionWriter writer) {
+    TCCServerReadThread(TCCConnection conn, ManagerConnectionWriter writer) {
         this.serverConnection = conn;
         this.amiWriter = writer;
     }
@@ -40,7 +39,8 @@ public class TCCServerReadThread extends Thread {
 
         }
 
-        LOGGER.info("connection dead");
+
+        LOGGER.info("TCC connection to " + serverConnection.getIP() + " was lost...");
 
 
     }

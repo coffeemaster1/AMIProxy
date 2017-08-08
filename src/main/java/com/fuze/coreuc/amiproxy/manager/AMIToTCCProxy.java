@@ -12,14 +12,13 @@ public class AMIToTCCProxy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AMIToTCCProxy.class);
 
-    //private List<AsteriskToTCCListener> tccListeners = new ArrayList();
     private CopyOnWriteArrayList<AsteriskToTCCListener> tccListeners = new CopyOnWriteArrayList<>();
 
     public void proxyEvent (HashMap<String, String> event) {
         tccListeners.parallelStream().forEach(l -> l.eventReceived(event));
     }
 
-    public void proxyEventArray (ArrayList<String> event) {
+    void proxyEventArray(ArrayList<String> event) {
         tccListeners.parallelStream().forEach(l -> l.eventArrayReceived(event));
     }
 
@@ -29,8 +28,8 @@ public class AMIToTCCProxy {
 
 
     public void removeTCCListener (AsteriskToTCCListener listener) {
+        LOGGER.info("Removing TCC server from proxy list...");
         tccListeners.remove(listener);
     }
-
 
 }

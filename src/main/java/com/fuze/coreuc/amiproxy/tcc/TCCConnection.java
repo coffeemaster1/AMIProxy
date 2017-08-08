@@ -1,5 +1,6 @@
 package com.fuze.coreuc.amiproxy.tcc;
 
+import com.fuze.coreuc.amiproxy.manager.AsteriskToTCCListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,6 +10,7 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
+import com.fuze.coreuc.amiproxy.manager.AMIToTCCProxy;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -26,18 +28,22 @@ public class TCCConnection {
     private PrintStream out;
     private BufferedReader in;
     private MessageDigest MD5;
+    private String tccIP;
     private boolean connected;
+    private AsteriskToTCCListener asteriskListener;
+    private AMIToTCCProxy asteriskProxy;
     private String EOL = "\r\n";
 
     private static final char[] hexChar = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
 
-    public TCCConnection(Socket socket, String hostname, String username, String password) throws IOException, NoSuchAlgorithmException {
+    TCCConnection(Socket socket, String hostname, String username, String password) throws IOException, NoSuchAlgorithmException {
 
         this.TCCServerSocket = socket;
         this.CallServerHostname = hostname;
         this.CallServerUsername = username;
         this.CallServerPassword = password;
+        this.tccIP = TCCServerSocket.getInetAddress().toString();
         this.outputStream = TCCServerSocket.getOutputStream();
         this.inputStream = TCCServerSocket.getInputStream();
         this.out = new PrintStream(outputStream, true);
@@ -47,11 +53,12 @@ public class TCCConnection {
 
     }
 
-    public TCCConnection(TCCConnection tcc){
+    TCCConnection(TCCConnection tcc){
         this.TCCServerSocket = tcc.TCCServerSocket;
         this.CallServerHostname = tcc.CallServerHostname;
         this.CallServerUsername = tcc.CallServerUsername;
         this.CallServerPassword = tcc.CallServerPassword;
+        this.tccIP = TCCServerSocket.getInetAddress().toString();
         this.outputStream = tcc.outputStream;
         this.inputStream = tcc.inputStream;
         this.out = tcc.out;
@@ -60,7 +67,7 @@ public class TCCConnection {
         this.connected = tcc.connected;
     }
 
-    public void setupConnection () throws IOException {
+    void setupConnection() throws IOException {
         HashMap<String, String> response;
 
         String stringChallenge = getChallenge();
@@ -88,35 +95,35 @@ public class TCCConnection {
 
     }
 
-    public boolean connectionActive () {
+    boolean connectionActive() {
         return connected;
     }
 
-    public void writeArrayToServer (String[][] action) {
-        String output = "";
+    private void writeArrayToServer(String[][] action) {
+        StringBuilder output = new StringBuilder();
 
         for ( String[] value : action) {
-            output = output + value[0] + ": " + value[1] + "\r\n";
+            output.append(value[0]).append(": ").append(value[1]).append(EOL);
         }
-        output = output + "\r\n";
+        output.append("\r\n");
 
         out.print(output);
 
     }
 
     public void writeMapToServer (Map<String, String> action){
-        String output = "";
+        StringBuilder output = new StringBuilder();
 
         for(Map.Entry<String, String> entry : action.entrySet()) {
-            output = output + entry.getKey() + ": " + entry.getValue() + "\r\n";
+            output.append(entry.getKey()).append(": ").append(entry.getValue()).append(EOL);
         }
-        output = output + "\r\n";
+        output.append("\r\n");
 
         out.print(output);
 
     }
 
-    public void writeToServer (String output) {
+    private void writeToServer(String output) {
 
         out.print(output + "\r\n");
     }
@@ -127,11 +134,9 @@ public class TCCConnection {
 
         for (String e : action) {
             if (e.contains("Data: ")) {
-                rawAction.append(e.replace("Data: ", "") + EOL);
+                rawAction.append(e.replace("Data: ", "")).append(EOL);
             }
-            else {
-                rawAction.append(e + EOL);
-            }
+            else rawAction.append(e).append(EOL);
         }
         rawAction.append(EOL);
 
@@ -146,20 +151,14 @@ public class TCCConnection {
 
     public void sendAction (HashMap<String, String> action) {
 
-        //LOGGER.info("");
-        //LOGGER.info("Sending Event to TCC Server:");
-        //action.forEach((k, v) -> LOGGER.info(k + ": " + v));
-        //LOGGER.info("");
-
-
         StringBuilder rawAction = new StringBuilder();
 
         for (Map.Entry<String, String> entry : action.entrySet()){
             if (entry.getKey().contains("Data")) {
-                rawAction.append(entry.getValue() + EOL);
+                rawAction.append(entry.getValue()).append(EOL);
             }
             else {
-                rawAction.append(entry.getKey() + ": " + entry.getValue() + EOL);
+                rawAction.append(entry.getKey()).append(": ").append(entry.getValue()).append(EOL);
             }
         }
 
@@ -169,7 +168,8 @@ public class TCCConnection {
 
     }
 
-    public HashMap<String, String> readFromServer () throws IOException {
+    HashMap<String, String> readFromServer() throws IOException {
+
         HashMap<String, String> action = new HashMap<>();
         String[] split;
         String line;
@@ -178,15 +178,12 @@ public class TCCConnection {
             if (line.equals("\r\n") || line.isEmpty()) {
                 break;
             }
-            //split = line.split(": ");
             split = splitFast(line);
-            //LOGGER.info(line);
             action.put(split[0], split[1]);
         }
 
         if (line == null && action.isEmpty()) {
-            connected = false;
-            LOGGER.info("Reader closed connection");
+            closeConnection();
         }
 
         LOGGER.info ("Successfully Read Action from TCC") ;
@@ -194,10 +191,7 @@ public class TCCConnection {
         return action;
     }
 
-    public String getMD5 (String stringChallenge) {
-
-        String digest = "";
-        byte[] bytes;
+    private String getMD5(String stringChallenge) {
 
         MD5.update(stringChallenge.getBytes(),0, stringChallenge.length());
         MD5.update(CallServerPassword.getBytes(), 0, CallServerPassword.length());
@@ -205,7 +199,7 @@ public class TCCConnection {
         return toHexString(MD5.digest());
     }
 
-    public static String toHexString(byte[] b)
+    private static String toHexString(byte[] b)
     {
         final StringBuilder sb;
 
@@ -218,20 +212,43 @@ public class TCCConnection {
         return sb.toString();
     }
 
-    public String getChallenge () {
+    private String getChallenge() {
 
         Integer challenge = ThreadLocalRandom.current().nextInt(1000000, 9999999 + 1);
-        String stringChallenge = challenge.toString();
 
-        return stringChallenge;
+        return challenge.toString();
     }
 
-    public final String[] splitFast(String string) {
+    private String[] splitFast(String string) {
 
         int index = string.indexOf(':');
-        String[] splitResult = { string.substring( 0, index), string.substring(index + 2) };
 
-        return splitResult;
+        return new String[]{ string.substring( 0, index), string.substring(index + 2) };
+    }
+
+    String getIP() {
+        return tccIP;
+    }
+
+    private void closeConnection() throws IOException {
+        LOGGER.info("Closing TCC connection to " + this.tccIP + "...");
+        removeListenerFromProxy();
+        out.close();
+        in.close();
+        TCCServerSocket.close();
+        connected = false;
+    }
+
+    void setProxy(AMIToTCCProxy proxy) {
+        this.asteriskProxy = proxy;
+    }
+
+    void setListener(AsteriskToTCCListener listener) {
+        this.asteriskListener = listener;
+    }
+
+    private void removeListenerFromProxy() {
+        asteriskProxy.removeTCCListener(asteriskListener);
     }
 
 }
