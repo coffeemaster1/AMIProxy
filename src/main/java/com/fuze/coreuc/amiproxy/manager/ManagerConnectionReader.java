@@ -26,19 +26,23 @@ public class ManagerConnectionReader extends Thread {
     public void run () {
         CopyOnWriteArrayList<String> event;
 
-        try {
-            if (!managerConnection.connectionActive()) {
-                managerConnection.initiateConnection();
-                managerConnection.login();
-            }
-            while (managerConnection.connectionActive()) {
-                event = managerConnection.readArrayFromServer();
-                if (!event.isEmpty()) {
-                    managerListener.onEvent(new ArrayList<>(event));
+        while (managerConnection.getConnectionAttempts() < 4) {
+            try {
+
+                if (!managerConnection.connectionActive()) {
+                    managerConnection.initiateConnection();
                 }
+                managerConnection.login();
+                while (managerConnection.connectionActive()) {
+                    event = managerConnection.readArrayFromServer();
+                    if (!event.isEmpty()) {
+                        managerListener.onEvent(new ArrayList<>(event));
+                    }
+                }
+                Thread.sleep(15000);
+            } catch (IOException | NoSuchAlgorithmException | InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (IOException | NoSuchAlgorithmException e) {
-            e.printStackTrace();
         }
     }
 

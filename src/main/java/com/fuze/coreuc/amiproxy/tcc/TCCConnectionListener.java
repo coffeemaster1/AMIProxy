@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.SynchronousQueue;
 
 public class TCCConnectionListener {
@@ -84,9 +85,12 @@ public class TCCConnectionListener {
 
             }
 
-            catch( Exception e ) {
+            catch( IOException e ) {
+                LOGGER.error("Could not open socket to listen for TCC connections...");
+                throw e;
+            } catch (NoSuchAlgorithmException e) {
+                LOGGER.error("Could not create MD5 algorithm object...");
                 e.printStackTrace();
-                System.out.println("Connection Error");
             }
         }
     }

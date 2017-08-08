@@ -109,6 +109,9 @@ public class AsteriskManagerConnection {
                 action.add("Action: " + line);
                 break;
             }
+            if (line.contains("Event: Shutdown")){
+                break;
+            }
             if (!line.contains(": ")) {
                 action.add("Data: " + line);
                 continue;
@@ -116,8 +119,8 @@ public class AsteriskManagerConnection {
             LOGGER.info (line);
             action.add(line);
         }
-        if (line == null && action.isEmpty()) {
-            isConnected = false;
+        if (line.contains("Event: Shutdown") || action.isEmpty()) {
+            closeConnection();
         }
         LOGGER.info("");
         return action;
@@ -141,6 +144,9 @@ public class AsteriskManagerConnection {
                 action.put("Data", line);
                 continue;
             }
+            if (line.contains("Event: Shutdown")){
+                break;
+            }
             split = new ArrayList<>(Arrays.asList(splitFast(line)));
 
             if (split.size() < 2) {
@@ -149,8 +155,8 @@ public class AsteriskManagerConnection {
             action.put(split.get(0), split.get(1));
         }
 
-        if (line == null && action.isEmpty()) {
-            isConnected = false;
+        if (action.isEmpty() || line.contains("Event: Shutdown")) {
+            closeConnection();
         }
         return action;
     }
@@ -201,6 +207,7 @@ public class AsteriskManagerConnection {
     }
 
     private void closeConnection() throws IOException {
+        LOGGER.info("Closing Asterisk connection");
         connectionWrite.close();
         connectionRead.close();
         managerConnection.close();
@@ -208,6 +215,7 @@ public class AsteriskManagerConnection {
     }
 
     boolean connectionActive() {
+        LOGGER.info("Checking if connection is active: " + isConnected);
         return this.isConnected;
     }
 
@@ -218,7 +226,7 @@ public class AsteriskManagerConnection {
         return new String[]{ string.substring( 0, index), string.substring(index + 2) };
     }
 
-    public Integer getConnectionAttempts () {
+    Integer getConnectionAttempts() {
         return this.connectionAttempts;
     }
 
