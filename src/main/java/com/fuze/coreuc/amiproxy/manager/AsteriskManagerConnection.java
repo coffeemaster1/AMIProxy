@@ -33,6 +33,7 @@ public class AsteriskManagerConnection {
 
 
     private boolean isConnected;
+    private Integer connectionAttempts = 0;
     private String EOL = "\r\n";
 
     public AsteriskManagerConnection (String hostname, String username, String password) {
@@ -53,13 +54,21 @@ public class AsteriskManagerConnection {
 
     public void initiateConnection () throws IOException {
 
-        managerConnection = new Socket( managerHostname, managerPort );
-        isConnected = true;
-        connectionWrite = new PrintStream( managerConnection.getOutputStream(), true );
-        connectionRead = new BufferedReader( new InputStreamReader(managerConnection.getInputStream()) );
+        try {
+            managerConnection = new Socket(managerHostname, managerPort);
+            isConnected = true;
+            connectionWrite = new PrintStream(managerConnection.getOutputStream(), true);
+            connectionRead = new BufferedReader(new InputStreamReader(managerConnection.getInputStream()));
+        }
+
+        catch (IOException e) {
+            LOGGER.error("Could not open socket...");
+            connectionAttempts++;
+            throw e;
+        }
     }
 
-    public boolean login () throws IOException, NoSuchAlgorithmException {
+    void login() throws IOException, NoSuchAlgorithmException {
         HashMap<String, String> readEvent;
         String [][] actionArray;
 
@@ -77,16 +86,14 @@ public class AsteriskManagerConnection {
             readEvent = readFromServer();
             if (!readEvent.get("Response").equals("Success")) {
                 LOGGER.error("Could not authenticate with server!");
+                connectionAttempts++;
                 closeConnection();
-                return false;
             }
-
-            return true;
         }
-        return false;
+        connectionAttempts++;
     }
 
-    public CopyOnWriteArrayList<String> readArrayFromServer () throws IOException {
+    CopyOnWriteArrayList<String> readArrayFromServer() throws IOException {
 
         CopyOnWriteArrayList<String> action = new CopyOnWriteArrayList<>();
         String line;
@@ -95,7 +102,7 @@ public class AsteriskManagerConnection {
 
 
         while ((line = connectionRead.readLine()) != null){
-            if (line == null || line.isEmpty()){
+            if (line.isEmpty()){
                 break;
             }
             if (line.contains("Asterisk Call Manager")){
@@ -116,14 +123,14 @@ public class AsteriskManagerConnection {
         return action;
     }
 
-    public HashMap<String, String> readFromServer () throws IOException {
+    private HashMap<String, String> readFromServer() throws IOException {
 
         HashMap<String, String> action = new HashMap<>();
         ArrayList<String> split;
         String line;
 
         while ((line = connectionRead.readLine()) != null) {
-            if (line == null || line.isEmpty()) {
+            if (line.isEmpty()) {
                 break;
             }
             if (line.contains("Asterisk Call Manager")) {
@@ -134,7 +141,6 @@ public class AsteriskManagerConnection {
                 action.put("Data", line);
                 continue;
             }
-
             split = new ArrayList<>(Arrays.asList(splitFast(line)));
 
             if (split.size() < 2) {
@@ -149,17 +155,17 @@ public class AsteriskManagerConnection {
         return action;
     }
 
-    public void sendAction (HashMap<String, String> action) {
+    void sendAction(HashMap<String, String> action) {
 
         StringBuilder rawAction = new StringBuilder();
-        action.forEach((k, v) -> rawAction.append(k + ": " + v + EOL));
+        action.forEach((k, v) -> rawAction.append(k).append(": ").append(v).append(EOL));
         rawAction.append(EOL);
 
         connectionWrite.print(rawAction.toString());
 
     }
 
-    public HashMap<String, String> createAction (String[][] action) {
+    private HashMap<String, String> createAction(String[][] action) {
 
         HashMap<String, String> mappedAction = new HashMap<>();
 
@@ -170,7 +176,7 @@ public class AsteriskManagerConnection {
         return mappedAction;
     }
 
-    public static String toHexString(byte[] b)
+    private static String toHexString(byte[] b)
     {
         final StringBuilder sb;
 
@@ -183,7 +189,7 @@ public class AsteriskManagerConnection {
         return sb.toString();
     }
 
-    public String getMD5 (String stringChallenge) {
+    private String getMD5(String stringChallenge) {
 
         byte[] bytes;
 
@@ -194,24 +200,27 @@ public class AsteriskManagerConnection {
 
     }
 
-    public void closeConnection () throws IOException {
+    private void closeConnection() throws IOException {
         connectionWrite.close();
         connectionRead.close();
         managerConnection.close();
         isConnected = false;
     }
 
-
-    public boolean connectionActive () {
+    boolean connectionActive() {
         return this.isConnected;
     }
 
-    public final String[] splitFast(String string) {
+    private String[] splitFast(String string) {
 
         int index = string.indexOf(':');
-        String[] splitResult = { string.substring( 0, index), string.substring(index + 2) };
 
-        return splitResult;
+        return new String[]{ string.substring( 0, index), string.substring(index + 2) };
     }
+
+    public Integer getConnectionAttempts () {
+        return this.connectionAttempts;
+    }
+
 
 }
