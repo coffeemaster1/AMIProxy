@@ -11,9 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import com.fuze.coreuc.amiproxy.manager.AMIToTCCProxy;
-
 import java.util.concurrent.ThreadLocalRandom;
-
 
 public class TCCConnection {
 
@@ -84,8 +82,6 @@ public class TCCConnection {
 
         response = readFromServer();
 
-
-        LOGGER.info("MD5Hash: " + MD5Hash);
         if (response.get("key").equals(MD5Hash)) {
             LOGGER.info("MD5 Matched");
             String[][] authSuccess = {{"Response", "Success"}, {"ActionID", response.get("actionid")}, {"Message", "Authentication accepted"}};
@@ -117,7 +113,7 @@ public class TCCConnection {
         for(Map.Entry<String, String> entry : action.entrySet()) {
             output.append(entry.getKey()).append(": ").append(entry.getValue()).append(EOL);
         }
-        output.append("\r\n");
+        output.append(EOL);
 
         out.print(output);
 
@@ -125,7 +121,7 @@ public class TCCConnection {
 
     private void writeToServer(String output) {
 
-        out.print(output + "\r\n");
+        out.print(output + EOL);
     }
 
     public void sendActionArray (ArrayList<String> action) {
@@ -140,12 +136,10 @@ public class TCCConnection {
         }
         rawAction.append(EOL);
 
-        LOGGER.info("Attempting Send to TCC Server...");
+        LOGGER.info("Attempting Send to TCC Server: " + this.tccIP);
 
         out.print(rawAction.toString());
         out.flush();
-
-        LOGGER.info("Packet sent to TCC Server..." + action.get(0));
 
     }
 
@@ -168,26 +162,56 @@ public class TCCConnection {
 
     }
 
-    HashMap<String, String> readFromServer() throws IOException {
+    ArrayList<String> readArrayFromServer () throws IOException {
+        ArrayList<String> action = new ArrayList<>();
+        String line;
+
+        try {
+            while ((line = in.readLine()) != null) {
+                if (line.equals(EOL) || line.isEmpty()) {
+                    break;
+                }
+                action.add(line);
+            }
+            if (line == null && action.isEmpty()) {
+                closeConnection();
+            }
+
+            LOGGER.info("Read action array from TCC server: " + this.tccIP);
+        }
+        catch (IOException e){
+            LOGGER.error("Error reading from TCC connection: " + this.tccIP);
+            e.printStackTrace();
+            closeConnection();
+        }
+        return action;
+    }
+
+    private HashMap<String, String> readFromServer() throws IOException {
 
         HashMap<String, String> action = new HashMap<>();
         String[] split;
         String line;
 
-        while ((line = in.readLine()) != null) {
-            if (line.equals("\r\n") || line.isEmpty()) {
-                break;
+        try {
+            while ((line = in.readLine()) != null) {
+                if (line.equals(EOL) || line.isEmpty()) {
+                    break;
+                }
+                split = splitFast(line);
+                action.put(split[0], split[1]);
             }
-            split = splitFast(line);
-            action.put(split[0], split[1]);
-        }
 
-        if (line == null && action.isEmpty()) {
+            if (line == null && action.isEmpty()) {
+                closeConnection();
+            }
+            LOGGER.info("Successfully Read Action from TCC");
+        }
+        catch (IOException e){
+            LOGGER.error("Error reading from TCC connection: " + this.tccIP);
+            e.printStackTrace();
             closeConnection();
         }
-
-        LOGGER.info ("Successfully Read Action from TCC") ;
-
         return action;
     }
 

@@ -171,6 +171,16 @@ public class AsteriskManagerConnection {
 
     }
 
+    void sendActionArray (ArrayList<String> action) {
+        StringBuilder rawAction = new StringBuilder();
+        action.forEach(l ->
+                rawAction.append(l)
+                .append(EOL));
+        rawAction.append(EOL);
+
+        connectionWrite.print(rawAction.toString());
+    }
+
     private HashMap<String, String> createAction(String[][] action) {
 
         HashMap<String, String> mappedAction = new HashMap<>();

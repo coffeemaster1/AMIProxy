@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.SynchronousQueue;
+import java.util.ArrayList;
 
 public class TCCConnectionListener {
 
@@ -20,6 +20,7 @@ public class TCCConnectionListener {
     private final String password;
     private AMIToTCCProxy proxy;
     private ManagerConnectionWriter writer;
+    private ArrayList<TCCServerReadThread> tccConnections;
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TCCConnectionListener.class);
@@ -46,10 +47,24 @@ public class TCCConnectionListener {
         this.writer = writer;
     }
 
+    private void handleInterrupt() {
+        if (!tccConnections.isEmpty()) {
+            tccConnections.forEach(c -> {
+                try {
+                    c.join();
+                } catch (InterruptedException e) {
+                    LOGGER.error("Could not interrupt TCC reader thread: " + c.getReaderIP());
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
+
     public void listen () throws IOException {
         Socket serverSocket;
         ServerSocket listener;
         TCCConnection connection;
+        tccConnections = new ArrayList<>();
 
         try
         {
@@ -57,7 +72,7 @@ public class TCCConnectionListener {
         }
         catch ( IOException e )
         {
-            LOGGER.error("Unable start AgiServer: cannot to bind to *:" + port + ".", e);
+            LOGGER.error("Unable start TCC Listener: Cannot to bind to *:" + port + ".", e);
             throw e;
         }
 
@@ -66,24 +81,26 @@ public class TCCConnectionListener {
             TCCServerReadThread thread;
             AsteriskToTCCListener tccListener;
 
-            LOGGER.info("Socket: " + listener);
+            LOGGER.info("Listening for TCC connections on : " + listener);
             try {
                 serverSocket = listener.accept();
 
                 LOGGER.info("Connection established on port: " + port + " from address: " + serverSocket.getInetAddress());
-                LOGGER.info("Launching thread for this server connection... ");
 
                 connection = new TCCConnection(serverSocket, hostname, username, password);
                 connection.setupConnection();
+
                 tccListener = new AsteriskToTCCListener(new TCCConnection(connection));
                 proxy.addTCCListener(tccListener);
                 connection.setProxy(proxy);
                 connection.setListener(tccListener);
 
                 thread = new TCCServerReadThread(connection, writer);
+                LOGGER.info("Launching thread for this server connection... ");
 
                 thread.setDaemon(true);
                 thread.start();
+                tccConnections.add(thread);
 
             }
 
@@ -95,5 +112,6 @@ public class TCCConnectionListener {
                 e.printStackTrace();
             }
         }
+        handleInterrupt();
     }
 }

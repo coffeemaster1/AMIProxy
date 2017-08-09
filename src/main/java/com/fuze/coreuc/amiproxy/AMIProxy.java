@@ -6,14 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.concurrent.SynchronousQueue;
-
 
 public class AMIProxy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AMIProxy.class);
-
 
     public static void main(String[] args) throws Exception {
 
@@ -24,7 +20,6 @@ public class AMIProxy {
 
         TCCConnectionListener TCCListener;
         AMIToTCCProxy proxy = new AMIToTCCProxy();
-
 
         try {
             AsteriskManagerConnection ami = new AsteriskManagerConnection(

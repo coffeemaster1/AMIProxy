@@ -35,7 +35,7 @@ public class ManagerConnectionReader extends Thread {
                 managerConnection.login();
                 while (managerConnection.connectionActive()) {
                     event = managerConnection.readArrayFromServer();
-                    if (!event.isEmpty()) {
+                    if (!event.isEmpty() && !event.get(0).equals("Event: Skip")) {
                         managerListener.onEvent(new ArrayList<>(event));
                     }
                 }

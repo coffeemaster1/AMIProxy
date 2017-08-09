@@ -5,10 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.*;
-import java.util.HashMap;
+import java.util.ArrayList;
 
 public class TCCServerReadThread extends Thread {
 
@@ -16,32 +13,36 @@ public class TCCServerReadThread extends Thread {
 
     private ManagerConnectionWriter amiWriter;
     private TCCConnection serverConnection;
+    private String tccServerIP;
 
     TCCServerReadThread(TCCConnection conn, ManagerConnectionWriter writer) {
         this.serverConnection = conn;
         this.amiWriter = writer;
+        this.tccServerIP = serverConnection.getIP();
     }
 
     @Override
     public void run (){
-
-        HashMap<String, String> event = new HashMap<>();
+        ArrayList<String> event;
 
         while (serverConnection.connectionActive()) {
             try {
-                event = serverConnection.readFromServer();
+                event = serverConnection.readArrayFromServer();
+                if (event.isEmpty()) {
+                    continue;
+                }
+                amiWriter.proxyEventArray(event);
             } catch (IOException e) {
+                LOGGER.error("Error reading event from TCC server");
                 e.printStackTrace();
+                break;
             }
-            if (!event.isEmpty()) {
-                amiWriter.proxyEvent(event);
-            }
-
         }
-
-
         LOGGER.info("TCC connection to " + serverConnection.getIP() + " was lost...");
 
+    }
 
+    String getReaderIP() {
+        return tccServerIP;
     }
 }

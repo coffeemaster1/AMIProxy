@@ -18,57 +18,53 @@ public class EventTranslator {
     private static final ArrayList<String> changedEvents = new ArrayList<>(Arrays.asList("DialBegin", "DialEnd", "QueueCallerJoin",
             "QueueCallerLeave", "AgentCalled", "AttendedTransfer", "BlindTransfer", "Hangup", "BridgeEnter", "BridgeLeave"));
 
-    public ArrayList<String> translateEvent (ArrayList<String> event) {
+    ArrayList<String> translateEvent(ArrayList<String> event) {
 
         String first = splitFastFirst(event.get(0));
 
         if (!inEventList(first)) {
             return event;
         }
-        if (first.equals("DialBegin")) {
-            return transformDial(event);
-        }
-        else if (first.equals("DialEnd")) {
-            return transformDialEnd(event);
-        }
-        else if (first.equals("QueueCallerJoin")) {
-            return transformJoin(event);
-        }
-        else if (first.equals("QueueCallerLeave")) {
-            return transformLeave(event);
-        }
-        else if (first.equals("AgentCalled")) {
-            return transformAgentCalled(event);
-        }
-        else if (first.equals("AttendedTransfer")) {
-            return transformTransfer(event);
-        }
-        else if (first.equals("BlindTransfer")) {
-            return transformTransfer(event);
-        }
-        else if (first.equals("Event: Hangup")) {
-            return transformHangup(event);
-        }
-        else if (first.equals("BridgeEnter")) {
-            HashMap<String, String> thisBridge = eventHasher(event);
-            String bridgeID = thisBridge.get("BridgeUniqueid");
+        switch (first) {
+            case "DialBegin":
+                return transformDial(event);
+            case "DialEnd":
+                return transformDialEnd(event);
+            case "QueueCallerJoin":
+                return transformJoin(event);
+            case "QueueCallerLeave":
+                return transformLeave(event);
+            case "AgentCalled":
+                return transformAgentCalled(event);
+            case "AttendedTransfer":
+                return transformTransfer(event);
+            case "BlindTransfer":
+                return transformTransfer(event);
+            case "Event: Hangup":
+                return transformHangup(event);
+            case "BridgeEnter":
+                HashMap<String, String> thisBridge = eventHasher(event);
+                String bridgeID = thisBridge.get("BridgeUniqueid");
 
-            if (!bridgeList.containsKey(bridgeID)) {
-                bridgeList.put(bridgeID, thisBridge);
-                event.clear();
-                event.add("Event: Skip");
-                return event;
-            }
-            else if (bridgeList.containsKey(bridgeID)) {
-                bridgeList.put(bridgeID + "-1", thisBridge);
-                return transformBridge(thisBridge, bridgeList.get(bridgeID));
-            }
+                if (!bridgeList.containsKey(bridgeID)) {
+                    bridgeList.put(bridgeID, thisBridge);
+                    event.clear();
+                    event.add("Event: Skip");
+                    return event;
+                } else if (bridgeList.containsKey(bridgeID)) {
+                    bridgeList.put(bridgeID + "-1", thisBridge);
+                    return transformBridge(thisBridge, bridgeList.get(bridgeID));
+                }
+                break;
+            case "BridgeLeave":
+
+                break;
         }
 
         return event;
     }
 
-    public HashMap<String, String> eventHasher ( ArrayList<String> event ) {
+    private HashMap<String, String> eventHasher(ArrayList<String> event) {
 
         HashMap<String, String> hash = new HashMap<>();
         ArrayList<String> split;
@@ -82,7 +78,23 @@ public class EventTranslator {
 
     }
 
-    public ArrayList<String> transformBridge ( HashMap<String, String> hashedBridge1, HashMap<String, String> hashedBridge2) {
+    public ArrayList<String> transformBridgeEnd () {
+
+        ArrayList<String> newEvent = new ArrayList<>();
+
+        LOGGER.info("");
+        LOGGER.info("Translating Event");
+
+
+
+
+        newEvent.forEach(LOGGER::info);
+
+        return newEvent;
+
+    }
+
+    private ArrayList<String> transformBridge(HashMap<String, String> hashedBridge1, HashMap<String, String> hashedBridge2) {
 
         ArrayList<String> newEvent = new ArrayList<>();
 
@@ -102,13 +114,13 @@ public class EventTranslator {
         newEvent.add("LinkedID1: " + hashedBridge1.get("Linkedid"));
         newEvent.add("LinkedID2: " + hashedBridge2.get("Linkedid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformHangup ( ArrayList<String> event ) {
+    private ArrayList<String> transformHangup(ArrayList<String> event) {
 
 
         ArrayList<String> newEvent = new ArrayList<>();
@@ -129,13 +141,13 @@ public class EventTranslator {
         newEvent.add("Cause: " + hashedEvent.get("Cause"));
         newEvent.add("Cause-txt: " + hashedEvent.get("Cause-txt"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformTransfer ( ArrayList<String> event ) {
+    private ArrayList<String> transformTransfer(ArrayList<String> event) {
 
         ArrayList<String> newEvent = new ArrayList<>();
         HashMap<String, String> hashedEvent = eventHasher(event);
@@ -156,13 +168,13 @@ public class EventTranslator {
         newEvent.add("TargetChannel: " + hashedEvent.get("TransferTargetChannel"));
         newEvent.add("TargetUniqueid: " + hashedEvent.get("TransferTargetUniqueid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformAgentCalled ( ArrayList<String> event ) {
+    private ArrayList<String> transformAgentCalled(ArrayList<String> event) {
 
         ArrayList<String> newEvent = new ArrayList<>();
         HashMap<String, String> hashedEvent = eventHasher(event);
@@ -187,13 +199,13 @@ public class EventTranslator {
         newEvent.add("Uniqueid: " + hashedEvent.get("Uniqueid"));
         newEvent.add("LinkedID: " + hashedEvent.get("Linkedid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformLeave ( ArrayList<String> event ) {
+    private ArrayList<String> transformLeave(ArrayList<String> event) {
 
         ArrayList<String> newEvent = new ArrayList<>();
         HashMap<String, String> hashedEvent = eventHasher(event);
@@ -210,13 +222,13 @@ public class EventTranslator {
         newEvent.add("Uniqueid: " + hashedEvent.get("Uniqueid"));
         newEvent.add("LinkedID: " + hashedEvent.get("Linkedid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformJoin (ArrayList<String> event) {
+    private ArrayList<String> transformJoin(ArrayList<String> event) {
 
         ArrayList<String> newEvent = new ArrayList<>();
         HashMap<String, String> hashedEvent = eventHasher(event);
@@ -237,13 +249,13 @@ public class EventTranslator {
         newEvent.add("Uniqueid: " + hashedEvent.get("Uniqueid"));
         newEvent.add("LinkedID: " + hashedEvent.get("Linkedid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformDialEnd (ArrayList<String> event) {
+    private ArrayList<String> transformDialEnd(ArrayList<String> event) {
 
         ArrayList<String> newEvent = new ArrayList<>();
         HashMap<String, String> hashedEvent = eventHasher(event);
@@ -259,13 +271,13 @@ public class EventTranslator {
         newEvent.add("SubEvent: End");
         newEvent.add("UniqueID: " + hashedEvent.get("Uniqueid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
     }
 
-    public ArrayList<String> transformDial (ArrayList<String> event) {
+    private ArrayList<String> transformDial(ArrayList<String> event) {
 
         ArrayList<String> newEvent = new ArrayList<>();
         HashMap<String, String> hashedEvent = eventHasher(event);
@@ -288,20 +300,19 @@ public class EventTranslator {
         newEvent.add("CallerIDNum: " + hashedEvent.get("CallerIDNum"));
         newEvent.add("UniqueID: " + hashedEvent.get("Uniqueid"));
 
-        newEvent.forEach(l -> LOGGER.info(l));
+        newEvent.forEach(LOGGER::info);
 
         return newEvent;
     }
 
-    public final String[] splitFast(String string) {
+    private final String[] splitFast(String string) {
 
         int index = string.indexOf(':');
-        String[] splitResult = { string.substring( 0, index), string.substring(index + 2) };
 
-        return splitResult;
+        return new String[]{ string.substring( 0, index), string.substring(index + 2) };
     }
 
-    public final String splitFastFirst(String string) {
+    private final String splitFastFirst(String string) {
 
         int index = string.indexOf(':');
         String[] splitResult = { string.substring( 0, index), string.substring(index + 2) };
@@ -309,7 +320,7 @@ public class EventTranslator {
         return splitResult[1];
     }
 
-    public boolean inEventList (String event) {
+    private boolean inEventList(String event) {
 
         for (String s : changedEvents) {
             if (s.equals(event)) {
