@@ -1,9 +1,12 @@
 package com.fuze.coreuc.amiproxy;
+
 import com.fuze.coreuc.amiproxy.manager.*;
 import com.fuze.coreuc.amiproxy.tcc.TCCConnectionListener;
+import org.aeonbits.owner.ConfigFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
+import com.fuze.coreuc.amiproxy.config.MyAppConfig;
 
 import java.io.IOException;
 
@@ -18,12 +21,14 @@ public class AMIProxy {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
+        final MyAppConfig cfg = ConfigFactory.create(MyAppConfig.class);
+
         TCCConnectionListener TCCListener;
         AMIToTCCProxy proxy = new AMIToTCCProxy();
 
         try {
             AsteriskManagerConnection ami = new AsteriskManagerConnection(
-                    "10.225.123.236", "isymphony", "1symph0ny2526");
+                    cfg.host(), cfg.user(), cfg.password(), cfg.amiPort());
             ami.initiateConnection();
             ManagerReadListener listener = new ManagerReadListener(proxy);
             ManagerConnectionReader reader = new ManagerConnectionReader(ami, listener);
@@ -34,7 +39,7 @@ public class AMIProxy {
 
             try {
                 TCCListener = new TCCConnectionListener(
-                        "10.225.123.236", "isymphony", "1symph0ny2526");
+                        cfg.host(), cfg.user(), cfg.password(), cfg.tccPort());
                 TCCListener.addProxy(proxy);
                 TCCListener.addWriter(writer);
                 TCCListener.listen();

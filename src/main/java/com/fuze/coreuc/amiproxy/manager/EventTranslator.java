@@ -3,10 +3,8 @@ package com.fuze.coreuc.amiproxy.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,13 +50,16 @@ public class EventTranslator {
                     event.add("Event: Skip");
                     return event;
                 } else if (bridgeList.containsKey(bridgeID)) {
-                    bridgeList.put(bridgeID + "-1", thisBridge);
-                    return transformBridge(thisBridge, bridgeList.get(bridgeID));
+                    HashMap<String, String> linkedBridge = bridgeList.get(bridgeID);
+                    bridgeList.remove(bridgeID);
+                    return transformBridge(thisBridge, linkedBridge);
                 }
                 break;
-            case "BridgeLeave":
+            case "Hold":
+                return transformHold(event);
+            case "Unhold":
+                return transformUnHold(event);
 
-                break;
         }
 
         return event;
@@ -85,13 +86,49 @@ public class EventTranslator {
         LOGGER.info("");
         LOGGER.info("Translating Event");
 
-
-
-
         newEvent.forEach(LOGGER::info);
 
         return newEvent;
 
+    }
+
+    private ArrayList<String> transformUnHold ( ArrayList<String> event ) {
+
+        ArrayList<String> newEvent = new ArrayList<>();
+        HashMap<String, String> hashedEvent = eventHasher(event);
+
+        LOGGER.info("");
+        LOGGER.info("Translating Event");
+
+        newEvent.add("Event: MusicOnHold");
+        newEvent.add("Privilege: " + hashedEvent.get("Privilege"));
+        newEvent.add("LinkedID: " + hashedEvent.get("Linkedid"));
+        newEvent.add("State: Stop");
+        newEvent.add("Channel: " + hashedEvent.get("Channel"));
+        newEvent.add("UniqueID: " + hashedEvent.get("Uniqueid"));
+
+        newEvent.forEach(LOGGER::info);
+
+        return newEvent;
+    }
+
+    private ArrayList<String> transformHold ( ArrayList<String> event ){
+        ArrayList<String> newEvent = new ArrayList<>();
+        HashMap<String, String> hashedEvent = eventHasher(event);
+
+        LOGGER.info("");
+        LOGGER.info("Translating Event");
+
+        newEvent.add("Event: MusicOnHold");
+        newEvent.add("Privilege: " + hashedEvent.get("Privilege"));
+        newEvent.add("LinkedID: " + hashedEvent.get("Linkedid"));
+        newEvent.add("State: Start");
+        newEvent.add("Channel: " + hashedEvent.get("Channel"));
+        newEvent.add("UniqueID: " + hashedEvent.get("Uniqueid"));
+
+        newEvent.forEach(LOGGER::info);
+
+        return newEvent;
     }
 
     private ArrayList<String> transformBridge(HashMap<String, String> hashedBridge1, HashMap<String, String> hashedBridge2) {
